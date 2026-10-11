@@ -72,3 +72,8 @@ class Store:
             item["status_history"] = json.loads(item["status_history"])
             result.append(item)
         return result
+
+    def clear(self) -> None:
+        with self.lock:
+            self.connection.execute("DELETE FROM orders")
+            self.connection.commit()

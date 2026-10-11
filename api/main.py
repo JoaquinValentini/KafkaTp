@@ -84,3 +84,12 @@ async def create_order(order: OrderRequest) -> dict:
 @app.get("/api/status")
 async def status() -> dict[str, list[dict]]:
     return {"orders": store.all() if store else []}
+
+
+@app.delete("/api/orders")
+async def clear_orders() -> dict[str, str]:
+    if store is None:
+        raise HTTPException(503, "API todavía no está lista")
+    store.clear()
+    log.info("Demo limpiada desde la interfaz")
+    return {"message": "Demo limpiada"}

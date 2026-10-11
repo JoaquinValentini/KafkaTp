@@ -3,28 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kafka Orders TP</title>
+  <title>Kafka Orders · Demo en vivo</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-<main>
-  <header><p class="eyebrow">TP APACHE KAFKA</p><h1>Pedidos en procesamiento asíncrono</h1>
-    <p class="muted">Un pedido atraviesa <b>orders</b>, <b>payments</b> y <b>notifications</b>.</p></header>
-  <section class="card">
-    <h2>Crear pedido</h2>
-    <form id="order-form">
-      <label>Cliente<input id="customer" required value="Juan"></label>
-      <label>Producto<input id="product" required value="Notebook"></label>
-      <div class="row"><label>Cantidad<input id="quantity" type="number" min="1" value="1" required></label>
-      <label>Precio<input id="price" type="number" min=".01" step=".01" value="850000" required></label></div>
-      <label>Resultado del pago<select id="payment-decision"><option value="APPROVED">Aprobado</option><option value="REJECTED">Rechazado</option></select></label>
-      <button type="submit">Publicar en orders</button>
-    </form>
-    <p id="feedback" class="feedback"></p>
+<main class="app-shell" id="app">
+  <header class="hero">
+    <div>
+      <div class="brand"><span class="brand-mark">K</span><span>Kafka Orders</span></div>
+      <p class="eyebrow">TRABAJO PRÁCTICO · DEMO EN VIVO</p>
+      <h1>Un pedido.<br><em>Varios servicios.</em></h1>
+      <p class="hero-copy">Observá cómo un evento viaja por Kafka y es procesado de forma asíncrona por pagos y notificaciones.</p>
+    </div>
+    <div class="connection-card">
+      <span class="connection-dot"></span>
+      <div><small>ESTADO DEL SISTEMA</small><strong id="connection">Conectando...</strong></div>
+    </div>
+  </header>
+
+  <section class="flow-card">
+    <div class="section-heading"><div><p class="eyebrow">RECORRIDO DEL EVENTO</p><h2>Así funciona el pedido</h2></div><span class="live-badge"><span></span> LIVE</span></div>
+    <div class="flow">
+      <div class="flow-node producer"><span class="node-icon">↗</span><strong>Frontend</strong><small>Productor</small></div>
+      <span class="flow-line"><b>orders</b></span>
+      <div class="flow-node"><span class="node-icon">₿</span><strong>Kafka</strong><small>Broker</small></div>
+      <span class="flow-line"><b>payments</b></span>
+      <div class="flow-node"><span class="node-icon">✓</span><strong>Pagos</strong><small>Consumer</small></div>
+      <span class="flow-line"><b>notifications</b></span>
+      <div class="flow-node"><span class="node-icon">♢</span><strong>Avisos</strong><small>Consumer</small></div>
+    </div>
   </section>
-  <section class="card"><div class="section-title"><h2>Pedidos y recorrido</h2><span id="connection">Actualizando...</span></div>
-    <div id="orders"><p class="muted">Todavía no hay pedidos.</p></div>
+
+  <section class="metrics">
+    <article class="metric"><span class="metric-icon blue">↗</span><div><small>PEDIDOS PUBLICADOS</small><strong id="metric-total">0</strong></div></article>
+    <article class="metric"><span class="metric-icon green">✓</span><div><small>PAGOS APROBADOS</small><strong id="metric-approved">0</strong></div></article>
+    <article class="metric"><span class="metric-icon red">!</span><div><small>PAGOS RECHAZADOS</small><strong id="metric-rejected">0</strong></div></article>
+    <article class="metric"><span class="metric-icon purple">♢</span><div><small>NOTIFICACIONES</small><strong id="metric-notifications">0</strong></div></article>
   </section>
+
+  <section class="workspace">
+    <section class="card form-card">
+      <div class="section-heading"><div><p class="eyebrow">PRODUCTOR</p><h2>Crear pedido</h2></div><span class="topic-label">TOPIC · orders</span></div>
+      <p class="card-intro">Elegí el resultado del pago para demostrar los dos escenarios.</p>
+      <form id="order-form">
+        <label>Cliente<input id="customer" required value="Juan" placeholder="Nombre del cliente"></label>
+        <label>Producto<input id="product" required value="Notebook" placeholder="Producto"></label>
+        <div class="row"><label>Cantidad<input id="quantity" type="number" min="1" value="1" required></label><label>Precio unitario<input id="price" type="number" min=".01" step=".01" value="850000" required></label></div>
+        <label>Simular resultado del pago<select id="payment-decision"><option value="APPROVED">✓ Pago aprobado</option><option value="REJECTED">✕ Pago rechazado</option></select></label>
+        <button type="submit"><span>Publicar evento</span><b>→</b></button>
+      </form>
+      <p id="feedback" class="feedback" role="status"></p>
+    </section>
+
+    <section class="card activity-card">
+      <div class="section-heading"><div><p class="eyebrow">CONSUMIDORES</p><h2>Actividad en vivo</h2></div><div class="toolbar"><select id="status-filter" aria-label="Filtrar pedidos"><option value="ALL">Todos</option><option value="PAYMENT_APPROVED">Aprobados</option><option value="PAYMENT_REJECTED">Rechazados</option><option value="CREATED">Procesando</option><option value="NOTIFICATION_SENT">Notificados</option></select><button id="refresh" class="refresh-button" title="Actualizar">↻</button></div></div>
+      <div id="orders" class="orders"><p class="empty-state"><span>⚡</span><b>Esperando el primer pedido</b><small>Publicá un evento para ver Kafka en acción</small></p></div>
+    </section>
+  </section>
+    <section class="bottom-grid">
+      <section class="card detail-card"><div class="section-heading"><div><p class="eyebrow">PEDIDO DESTACADO</p><h2 id="detail-title">Seleccioná un pedido</h2></div></div><div id="order-detail" class="detail-empty">Hacé clic en una tarjeta para ver sus datos.</div></section>
+      <section class="card logs-card"><div class="section-heading"><div><p class="eyebrow">EVENTOS DEL SISTEMA</p><h2>Actividad</h2></div></div><div id="activity-log" class="activity-log"><p class="muted">Todavía no hay actividad.</p></div></section>
+    </section>
+    <section class="presentation-bar"><div><b>Modo presentación</b><small>Enfoca el flujo y oculta información secundaria</small></div><button id="presentation-toggle" class="secondary-button">Activar modo presentación</button><button id="clear-demo" class="danger-button">Limpiar demo</button></section>
+    <footer><span>Apache Kafka · KRaft</span><span>Consumer groups: <b>payments-service</b> · <b>notifications-service</b></span><span>Entrega: <b>at-least-once</b></span></footer>
 </main>
 <script src="/static/app.js"></script>
 </body>
