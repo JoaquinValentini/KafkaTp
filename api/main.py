@@ -1,0 +1,86 @@
+import logging
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import AsyncGenerator
+from uuid import uuid4
+
+from confluent_kafka import Producer
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+from shared.db import Store
+from shared.events import new_event, utc_now
+from shared.kafka import config, ensure_topics, publish
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [API] %(message)s")
+log = logging.getLogger("api")
+producer: Producer | None = None
+store: Store | None = None
+
+
+class OrderRequest(BaseModel):
+    customer: str = Field(min_length=1, max_length=120)
+    product: str = Field(min_length=1, max_length=120)
+    quantity: int = Field(gt=0, le=1000)
+    price: float = Field(gt=0, le=100_000_000)
+    payment_decision: str = Field(default="APPROVED", pattern="^(APPROVED|REJECTED)$")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
+    global producer, store
+    ensure_topics()
+    producer = Producer(config())
+    store = Store(os.getenv("DATABASE_PATH", "data/orders.sqlite3"))
+    log.info("API lista")
+    yield
+    producer.flush(5)
+
+
+app = FastAPI(title="Kafka Orders TP", version="1.0.0", lifespan=lifespan)
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+@app.get("/")
+async def frontend() -> FileResponse:
+    return FileResponse(static_dir / "index.html")
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok", "service": "api"}
+
+
+@app.get("/api/orders")
+@app.get("/orders")
+async def orders() -> list[dict]:
+    return store.all() if store else []
+
+
+@app.post("/api/orders", status_code=202)
+@app.post("/orders", status_code=202)
+async def create_order(order: OrderRequest) -> dict:
+    if producer is None or store is None:
+        raise HTTPException(503, "API todavía no está lista")
+    order_id = f"ORD-{uuid4().hex[:8].upper()}"
+    timestamp = utc_now()
+    payload = {"id": order_id, **order.model_dump(), "status": "CREATED"}
+    event = new_event("order.created", payload)
+    try:
+        store.create_order(payload, timestamp)
+        publish(producer, "orders", event)
+        producer.flush(5)
+        log.info("Pedido %s publicado en orders", order_id)
+        return {"order_id": order_id, "status": "CREATED", "event_id": event["event_id"]}
+    except Exception as exc:
+        log.exception("No se pudo publicar el pedido %s", order_id)
+        raise HTTPException(503, "No se pudo publicar el pedido") from exc
+
+
+@app.get("/api/status")
+async def status() -> dict[str, list[dict]]:
+    return {"orders": store.all() if store else []}

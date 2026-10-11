@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kafka Orders TP</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<main>
+  <header><p class="eyebrow">TP APACHE KAFKA</p><h1>Pedidos en procesamiento asíncrono</h1>
+    <p class="muted">Un pedido atraviesa <b>orders</b>, <b>payments</b> y <b>notifications</b>.</p></header>
+  <section class="card">
+    <h2>Crear pedido</h2>
+    <form id="order-form">
+      <label>Cliente<input id="customer" required value="Juan"></label>
+      <label>Producto<input id="product" required value="Notebook"></label>
+      <div class="row"><label>Cantidad<input id="quantity" type="number" min="1" value="1" required></label>
+      <label>Precio<input id="price" type="number" min=".01" step=".01" value="850000" required></label></div>
+      <label>Resultado del pago<select id="payment-decision"><option value="APPROVED">Aprobado</option><option value="REJECTED">Rechazado</option></select></label>
+      <button type="submit">Publicar en orders</button>
+    </form>
+    <p id="feedback" class="feedback"></p>
+  </section>
+  <section class="card"><div class="section-title"><h2>Pedidos y recorrido</h2><span id="connection">Actualizando...</span></div>
+    <div id="orders"><p class="muted">Todavía no hay pedidos.</p></div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>
