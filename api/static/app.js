@@ -9,6 +9,7 @@ const activityLog = document.querySelector("#activity-log");
 let lastOrdersSnapshot = "";
 let currentOrders = [];
 let selectedOrderId = null;
+let paymentsPaused = false;
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, character => ({
@@ -70,9 +71,12 @@ function render(orders) {
 
 async function refresh() {
   try {
-    const response = await fetch("/api/status");
+    const response = await fetch("/api/status", {cache: "no-store"});
     if (!response.ok) throw new Error("API no disponible");
-    currentOrders = (await response.json()).orders;
+    const data = await response.json();
+    currentOrders = data.orders;
+    paymentsPaused = data.payments_paused;
+    updatePaymentsControl();
     const snapshot = JSON.stringify(currentOrders);
     updateMetrics(currentOrders);
     renderActivity(currentOrders);
@@ -108,6 +112,34 @@ form.addEventListener("submit", async event => {
   } finally {
     submitButton.disabled = false;
     submitButton.querySelector("span").textContent = "Publicar evento";
+  }
+});
+
+function updatePaymentsControl() {
+  const button = document.querySelector("#payments-toggle");
+  const help = document.querySelector("#payments-control-help");
+  button.textContent = paymentsPaused ? "Reanudar payments" : "Pausar payments";
+  button.classList.toggle("resume-button", paymentsPaused);
+  help.textContent = paymentsPaused
+    ? "Payments está pausado. Los pedidos nuevos quedan en orders hasta que lo reanudes."
+    : "Pausá el consumidor, publicá un pedido y reanudalo para ver cómo Kafka conserva el mensaje.";
+}
+
+document.querySelector("#payments-toggle").addEventListener("click", async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const action = paymentsPaused ? "resume" : "pause";
+    const response = await fetch(`/api/services/payments/${action}`, {method: "POST"});
+    if (!response.ok) throw new Error("No se pudo cambiar el estado de payments");
+    await refresh();
+    feedback.className = "feedback";
+    feedback.textContent = paymentsPaused ? "✓ Payments reanudado; Kafka procesará los pendientes" : "✓ Payments pausado; los mensajes quedan en Kafka";
+  } catch (error) {
+    feedback.className = "feedback error";
+    feedback.textContent = `Error: ${error.message}`;
+  } finally {
+    button.disabled = false;
   }
 });
 

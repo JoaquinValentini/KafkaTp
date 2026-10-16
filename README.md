@@ -89,6 +89,12 @@ error antes del commit, Kafka vuelve a entregar el mensaje. La implementación
 ofrece procesamiento **at-least-once**; no afirma exactly-once y puede
 reprocesar un evento ante una caída.
 
+La interfaz incluye el control **Pausar payments** para demostrar este
+comportamiento. Al pausarlo, el consumidor mantiene el mensaje de `orders` sin
+confirmar; se pueden publicar pedidos que quedan en Kafka con estado `CREATED`.
+Al pulsar **Reanudar payments**, el consumidor procesa los mensajes pendientes
+y el flujo continúa hacia `payments` y `notifications`.
+
 Para inspeccionar mensajes desde el host, con Kafka instalado localmente:
 
 ```powershell

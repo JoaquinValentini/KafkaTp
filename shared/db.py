@@ -26,6 +26,12 @@ class Store:
                 updated_at TEXT NOT NULL
             )"""
         )
+        self.connection.execute(
+            """CREATE TABLE IF NOT EXISTS service_controls (
+                service TEXT PRIMARY KEY,
+                paused INTEGER NOT NULL DEFAULT 0
+            )"""
+        )
         self.connection.commit()
 
     def create_order(self, order: dict[str, Any], timestamp: str) -> None:
@@ -77,3 +83,19 @@ class Store:
         with self.lock:
             self.connection.execute("DELETE FROM orders")
             self.connection.commit()
+
+    def set_service_paused(self, service: str, paused: bool) -> None:
+        with self.lock:
+            self.connection.execute(
+                """INSERT INTO service_controls (service, paused) VALUES (?, ?)
+                ON CONFLICT(service) DO UPDATE SET paused = excluded.paused""",
+                (service, int(paused)),
+            )
+            self.connection.commit()
+
+    def is_service_paused(self, service: str) -> bool:
+        with self.lock:
+            row = self.connection.execute(
+                "SELECT paused FROM service_controls WHERE service = ?", (service,)
+            ).fetchone()
+        return bool(row["paused"]) if row else False

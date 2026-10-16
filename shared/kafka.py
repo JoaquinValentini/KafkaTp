@@ -46,17 +46,30 @@ def publish(producer: Producer, topic: str, event: dict[str, Any]) -> None:
     producer.poll(0)
 
 
-def consume_forever(group: str, topic: str, handler: Callable[[dict[str, Any]], None]) -> None:
+def consume_forever(
+    group: str,
+    topic: str,
+    handler: Callable[[dict[str, Any]], None],
+    pause_check: Callable[[], bool] | None = None,
+) -> None:
     consumer = Consumer({**config(), "group.id": group, "auto.offset.reset": "earliest", "enable.auto.commit": False})
     consumer.subscribe([topic])
+    pending_message = None
     try:
         while True:
-            message = consumer.poll(1.0)
-            if message is None:
+            if pending_message is None:
+                message = consumer.poll(1.0)
+                if message is None:
+                    continue
+                if message.error():
+                    log.error("Kafka error: %s", message.error())
+                    continue
+                pending_message = message
+            if pause_check and pause_check():
+                time.sleep(0.5)
                 continue
-            if message.error():
-                log.error("Kafka error: %s", message.error())
-                continue
+            message = pending_message
+            pending_message = None
             try:
                 handler(json.loads(message.value()))
                 consumer.commit(message=message, asynchronous=False)

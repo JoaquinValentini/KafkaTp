@@ -82,8 +82,29 @@ async def create_order(order: OrderRequest) -> dict:
 
 
 @app.get("/api/status")
-async def status() -> dict[str, list[dict]]:
-    return {"orders": store.all() if store else []}
+async def status() -> dict[str, object]:
+    return {
+        "orders": store.all() if store else [],
+        "payments_paused": store.is_service_paused("payments") if store else False,
+    }
+
+
+@app.post("/api/services/payments/pause")
+async def pause_payments() -> dict[str, object]:
+    if store is None:
+        raise HTTPException(503, "API todavía no está lista")
+    store.set_service_paused("payments", True)
+    log.info("Consumidor de pagos pausado desde la interfaz")
+    return {"service": "payments", "paused": True}
+
+
+@app.post("/api/services/payments/resume")
+async def resume_payments() -> dict[str, object]:
+    if store is None:
+        raise HTTPException(503, "API todavía no está lista")
+    store.set_service_paused("payments", False)
+    log.info("Consumidor de pagos reanudado desde la interfaz")
+    return {"service": "payments", "paused": False}
 
 
 @app.delete("/api/orders")
