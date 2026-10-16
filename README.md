@@ -95,6 +95,10 @@ confirmar; se pueden publicar pedidos que quedan en Kafka con estado `CREATED`.
 Al pulsar **Reanudar payments**, el consumidor procesa los mensajes pendientes
 y el flujo continúa hacia `payments` y `notifications`.
 
+También se puede pausar **notifications**. En ese caso `payments` procesa el
+pedido y el estado queda en `PAYMENT_APPROVED` o `PAYMENT_REJECTED`; el evento
+permanece pendiente en el topic `payments` hasta pulsar **Reanudar avisos**.
+
 Para inspeccionar mensajes desde el host, con Kafka instalado localmente:
 
 ```powershell

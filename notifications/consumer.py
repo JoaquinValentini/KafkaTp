@@ -32,4 +32,9 @@ def handle(event: dict) -> None:
 
 if __name__ == "__main__":
     ensure_topics()
-    consume_forever("notifications-service", "payments", handle)
+    consume_forever(
+        "notifications-service",
+        "payments",
+        handle,
+        lambda: store.is_service_paused("notifications"),
+    )

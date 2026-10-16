@@ -64,9 +64,15 @@
       <section class="card detail-card"><div class="section-heading"><div><p class="eyebrow">PEDIDO DESTACADO</p><h2 id="detail-title">Seleccioná un pedido</h2></div></div><div id="order-detail" class="detail-empty">Hacé clic en una tarjeta para ver sus datos.</div></section>
       <section class="card logs-card"><div class="section-heading"><div><p class="eyebrow">EVENTOS DEL SISTEMA</p><h2>Actividad</h2></div></div><div id="activity-log" class="activity-log"><p class="muted">Todavía no hay actividad.</p></div></section>
     </section>
-    <section class="card service-control">
-      <div><p class="eyebrow">EXPERIMENTO KAFKA</p><h2>Control del consumidor de pagos</h2><p id="payments-control-help">Pausá el consumidor, publicá un pedido y reanudalo para ver cómo Kafka conserva el mensaje.</p></div>
-      <button id="payments-toggle" class="secondary-button">Pausar payments</button>
+    <section class="service-controls">
+      <section class="card service-control">
+        <div><p class="eyebrow">EXPERIMENTO KAFKA</p><h2>Consumidor de pagos</h2><p id="payments-control-help">Pausá payments y los pedidos quedan pendientes en el topic orders.</p></div>
+        <button id="payments-toggle" class="secondary-button">Pausar payments</button>
+      </section>
+      <section class="card service-control">
+        <div><p class="eyebrow">EXPERIMENTO KAFKA</p><h2>Consumidor de avisos</h2><p id="notifications-control-help">Pausá notifications y los pagos quedan pendientes antes de enviar el aviso.</p></div>
+        <button id="notifications-toggle" class="secondary-button">Pausar avisos</button>
+      </section>
     </section>
     <section class="presentation-bar"><div><b>Modo presentación</b><small>Enfoca el flujo y oculta información secundaria</small></div><button id="presentation-toggle" class="secondary-button">Activar modo presentación</button><button id="clear-demo" class="danger-button">Limpiar demo</button></section>
     <footer><span>Apache Kafka · KRaft</span><span>Consumer groups: <b>payments-service</b> · <b>notifications-service</b></span><span>Entrega: <b>at-least-once</b></span></footer>

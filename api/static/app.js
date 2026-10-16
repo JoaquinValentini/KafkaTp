@@ -10,6 +10,7 @@ let lastOrdersSnapshot = "";
 let currentOrders = [];
 let selectedOrderId = null;
 let paymentsPaused = false;
+let notificationsPaused = false;
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, character => ({
@@ -76,7 +77,8 @@ async function refresh() {
     const data = await response.json();
     currentOrders = data.orders;
     paymentsPaused = data.payments_paused;
-    updatePaymentsControl();
+    notificationsPaused = data.notifications_paused;
+    updateServiceControls();
     const snapshot = JSON.stringify(currentOrders);
     updateMetrics(currentOrders);
     renderActivity(currentOrders);
@@ -115,33 +117,60 @@ form.addEventListener("submit", async event => {
   }
 });
 
-function updatePaymentsControl() {
-  const button = document.querySelector("#payments-toggle");
-  const help = document.querySelector("#payments-control-help");
-  button.textContent = paymentsPaused ? "Reanudar payments" : "Pausar payments";
-  button.classList.toggle("resume-button", paymentsPaused);
-  help.textContent = paymentsPaused
-    ? "Payments está pausado. Los pedidos nuevos quedan en orders hasta que lo reanudes."
-    : "Pausá el consumidor, publicá un pedido y reanudalo para ver cómo Kafka conserva el mensaje.";
+function updateServiceControls() {
+  const controls = [
+    {
+      service: "payments",
+      paused: paymentsPaused,
+      button: document.querySelector("#payments-toggle"),
+      help: document.querySelector("#payments-control-help"),
+      pauseText: "Pausar payments",
+      resumeText: "Reanudar payments",
+      pausedHelp: "Payments está pausado. Los pedidos nuevos quedan en orders hasta que lo reanudes.",
+      activeHelp: "Pausá payments y los pedidos quedan pendientes en el topic orders."
+    },
+    {
+      service: "notifications",
+      paused: notificationsPaused,
+      button: document.querySelector("#notifications-toggle"),
+      help: document.querySelector("#notifications-control-help"),
+      pauseText: "Pausar avisos",
+      resumeText: "Reanudar avisos",
+      pausedHelp: "Notifications está pausado. Los pagos quedan pendientes antes de enviar el aviso.",
+      activeHelp: "Pausá notifications y los pagos quedan pendientes antes de enviar el aviso."
+    }
+  ];
+  controls.forEach(control => {
+    control.button.textContent = control.paused ? control.resumeText : control.pauseText;
+    control.button.classList.toggle("resume-button", control.paused);
+    control.help.textContent = control.paused ? control.pausedHelp : control.activeHelp;
+  });
 }
 
-document.querySelector("#payments-toggle").addEventListener("click", async event => {
+async function toggleService(service, event) {
   const button = event.currentTarget;
+  const wasPaused = service === "payments" ? paymentsPaused : notificationsPaused;
   button.disabled = true;
   try {
-    const action = paymentsPaused ? "resume" : "pause";
-    const response = await fetch(`/api/services/payments/${action}`, {method: "POST"});
-    if (!response.ok) throw new Error("No se pudo cambiar el estado de payments");
+    const action = wasPaused ? "resume" : "pause";
+    const response = await fetch(`/api/services/${service}/${action}`, {method: "POST"});
+    if (!response.ok) throw new Error(`No se pudo cambiar el estado de ${service}`);
     await refresh();
     feedback.className = "feedback";
-    feedback.textContent = paymentsPaused ? "✓ Payments reanudado; Kafka procesará los pendientes" : "✓ Payments pausado; los mensajes quedan en Kafka";
+    const label = service === "payments" ? "Payments" : "Notifications";
+    feedback.textContent = wasPaused
+      ? `✓ ${label} reanudado; Kafka procesará los pendientes`
+      : `✓ ${label} pausado; los mensajes quedan en Kafka`;
   } catch (error) {
     feedback.className = "feedback error";
     feedback.textContent = `Error: ${error.message}`;
   } finally {
     button.disabled = false;
   }
-});
+}
+
+document.querySelector("#payments-toggle").addEventListener("click", event => toggleService("payments", event));
+document.querySelector("#notifications-toggle").addEventListener("click", event => toggleService("notifications", event));
 
 document.querySelector("#status-filter").addEventListener("change", () => render(currentOrders));
 document.querySelector("#refresh").addEventListener("click", refresh);

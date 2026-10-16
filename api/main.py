@@ -86,6 +86,7 @@ async def status() -> dict[str, object]:
     return {
         "orders": store.all() if store else [],
         "payments_paused": store.is_service_paused("payments") if store else False,
+        "notifications_paused": store.is_service_paused("notifications") if store else False,
     }
 
 
@@ -105,6 +106,24 @@ async def resume_payments() -> dict[str, object]:
     store.set_service_paused("payments", False)
     log.info("Consumidor de pagos reanudado desde la interfaz")
     return {"service": "payments", "paused": False}
+
+
+@app.post("/api/services/notifications/pause")
+async def pause_notifications() -> dict[str, object]:
+    if store is None:
+        raise HTTPException(503, "API todavía no está lista")
+    store.set_service_paused("notifications", True)
+    log.info("Consumidor de notificaciones pausado desde la interfaz")
+    return {"service": "notifications", "paused": True}
+
+
+@app.post("/api/services/notifications/resume")
+async def resume_notifications() -> dict[str, object]:
+    if store is None:
+        raise HTTPException(503, "API todavía no está lista")
+    store.set_service_paused("notifications", False)
+    log.info("Consumidor de notificaciones reanudado desde la interfaz")
+    return {"service": "notifications", "paused": False}
 
 
 @app.delete("/api/orders")
